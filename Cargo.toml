@@ -1,0 +1,4 @@
+[package]
+name = "msgflo"
+version = "0.0.1"
+authors = ["Jon Nordby <jononor@gmail.com>"]
