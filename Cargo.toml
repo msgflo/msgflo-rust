@@ -2,3 +2,10 @@
 name = "msgflo"
 version = "0.0.1"
 authors = ["Jon Nordby <jononor@gmail.com>"]
+
+[dependencies.amqp]
+git = "https://github.com/jonnor/rust-amqp.git"
+
+[[bin]]
+name = "msgflo-rust"
+path = "src/bin/msgflo-rust.rs"
