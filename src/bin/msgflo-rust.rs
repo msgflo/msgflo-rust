@@ -45,6 +45,17 @@ struct ParticipantInfo {
     outports: Vec<ParticipantPort>,
 }
 
+type ProcessFunction = fn(i32) -> i32;
+struct Participant {
+    info: ParticipantInfo,
+    process: ProcessFunction,
+}
+
+struct Connection {
+    session: Session,
+    channel: Channel,
+}
+
 fn send_discovery(channel: &mut Channel, info: &ParticipantInfo) {
     let queue_name = "fbp"; // TODO: use an exchange istead, requires protocol change in msgflo
 
@@ -57,11 +68,25 @@ fn send_discovery(channel: &mut Channel, info: &ParticipantInfo) {
     let res = channel.basic_publish("", queue_name, true, false, props, payload.into_bytes());
 }
 
-// for debugging
-fn selftest() {
+fn start_participant(participant: &Participant) -> Connection {
     let mut session = Session::new(Options{vhost: "/", .. Default::default()}).ok().expect("Can't create session");
     let mut channel = session.open_channel(1).expect("channel");
 
+    send_discovery(&mut channel, &participant.info);
+    listen_discovery(&mut channel);
+
+    channel.start_consuming();
+    return Connection { session: session, channel: channel } ;
+}
+
+// for debugging
+fn stop_participant(participant: &Participant, connection: &mut Connection) {
+
+    let closed = connection.channel.close(200, "Bye".to_string());
+    connection.session.close(200, "Good Bye".to_string());
+}
+
+fn main() {
     let info = ParticipantInfo {
         id: "part11".to_string(),
         role: "myrole".to_string(),
@@ -69,16 +94,12 @@ fn selftest() {
         inports: Vec::<ParticipantPort>::new(),
         outports: Vec::<ParticipantPort>::new(),
     };
+    fn process_repeat(input: i32) -> i32 {
+        return input;
+    }
 
-    send_discovery(&mut channel, &info);
-    listen_discovery(&mut channel);
+    let p = Participant { info: info, process: process_repeat };
 
-    channel.start_consuming();
-
-    let closed = channel.close(200, "Bye".to_string());
-    session.close(200, "Good Bye".to_string());
-}
-
-fn main() {
-    selftest();
+    let mut c = start_participant(&p);
+    stop_participant(&p, &mut c);
 }
