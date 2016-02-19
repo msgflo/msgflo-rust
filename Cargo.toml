@@ -3,8 +3,8 @@ name = "msgflo"
 version = "0.0.1"
 authors = ["Jon Nordby <jononor@gmail.com>"]
 
-[dependencies.amqp]
-git = "https://github.com/jonnor/rust-amqp.git"
+[dependencies]
+amqp = "0.0.14"
 
 [[bin]]
 name = "msgflo-rust"
