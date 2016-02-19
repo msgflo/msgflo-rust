@@ -1,18 +1,22 @@
 
+extern crate rustc_serialize;
 extern crate amqp;
 
 use amqp::{ConsumerCallBackFn, Session, Table, Basic, Channel, Options};
 use amqp::protocol;
 use std::default::Default;
+use rustc_serialize::json;
 
 // for debugging
 fn listen_discovery(channel: &mut Channel) {
     fn participant_discovered(channel: &mut Channel, deliver: protocol::basic::Deliver,
                             headers: protocol::basic::BasicProperties, body: Vec<u8>){
-        println!("Discovered MsgFlo participant !!:");
+        let s = std::str::from_utf8(&body).unwrap();
+        let info: ParticipantInfo = json::decode(s).unwrap();
+        println!("MsgFlo participant discovered: {:?}", info);
         //println!("Deliver info: {:?}", deliver);
         //println!("Content headers: {:?}", headers);
-        //println!("Content body: {:?}", body);
+        //println!("Content body: ", );
         channel.basic_ack(deliver.delivery_tag, false);
     }
 
@@ -21,6 +25,28 @@ fn listen_discovery(channel: &mut Channel) {
                                                 "", false, false, false, false, Table::new());
 }
 
+#[derive(Debug, Default, RustcDecodable, RustcEncodable)]
+struct ParticipantInfo {
+    id: String, // unique name
+    role: String ,// role participant has
+    component: String, // component the participant is instance of
+//   label: Option<String>, // (optional) short human-readable description
+//    icon: Option<String>, // (optional)
+}
+
+/*
+    inports: list of inports containing:
+        id: port name
+        queue: the message queue the process listens to
+        type: port datatype, for example boolean
+        options: queue options as specified by the message queue implementation
+    outports: list of outports containing:
+        id: port name
+        queue: the message queue the process transmits to
+        type: port datatype, for example boolean
+        options: queue options as specified by the message queue implementation
+*/
+
 fn send_discovery(channel: &mut Channel) {
     let queue_name = "fbp"; // TODO: use an exchange istead, requires protocol change in msgflo
 
@@ -28,8 +54,15 @@ fn send_discovery(channel: &mut Channel) {
     let content_type = Some("application/json".to_string());
     let props = protocol::basic::BasicProperties { content_type: content_type, ..Default::default() };
 
-    let payload = b"Hello from rust!";
-    let res = channel.basic_publish("", queue_name, true, false, props, payload.to_vec());
+    let info = ParticipantInfo {
+        id: "part11".to_string(),
+        role: "myrole".to_string(),
+        component: "rust/First".to_string(),
+    };
+
+    let payload = json::encode(&info).unwrap();
+    println!("sending: {}", payload);
+    let res = channel.basic_publish("", queue_name, true, false, props, payload.into_bytes());
 }
 
 // for debugging
