@@ -196,20 +196,6 @@ impl log::Log for SimpleLogger {
     }
 }
 
-pub fn init_logger(level: &str) {
-
-    let log_level = match level {
-        "error" => LogLevel::Error,
-        _ => LogLevel::Debug,
-    };
-
-    log::set_logger(|maxlog| {
-        maxlog.set(LogLevelFilter::Debug);
-        Box::new(SimpleLogger { showlevel: log_level } )
-    });
-
-}
-
 #[derive(Debug)]
 struct ParticipantOptions {
     role: String,
@@ -225,7 +211,6 @@ impl Default for ParticipantOptions {
         ParticipantOptions {
             broker: "amqp://localhost//".to_string(),
             role: format!("msgflo-rust-{}", id),
-            log: "error".to_string(),
         }
     }
 }
@@ -240,9 +225,6 @@ fn parse(options: &mut ParticipantOptions) {
     parser.refer(&mut options.broker)
         .add_option(&["--broker"], Store, "Address of messaging broker")
         .envvar("MSGFLO_BROKER");
-    parser.refer(&mut options.log)
-        .add_option(&["--log"], Store, "Log level")
-        .envvar("MSGFLO_RUST_LOGLEVEL");
 
     parser.parse_args_or_exit(); // XXX: should return out
 } 
@@ -254,7 +236,6 @@ pub fn participant_main(p: Participant) {
 
     let mut options = ParticipantOptions { .. Default::default() };
     parse(&mut options);
-    init_logger(&options.log);
 
     let mut c = start_participant(&p, &options);
     c.channel.start_consuming();
