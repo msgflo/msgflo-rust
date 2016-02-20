@@ -208,6 +208,19 @@ struct ParticipantOptions {
     log: String,
 }
 
+impl Default for ParticipantOptions {
+    fn default() -> ParticipantOptions { 
+        use rand::{thread_rng, Rng};
+
+        let id: String = thread_rng().gen_ascii_chars().take(5).collect();
+        ParticipantOptions {
+            broker: "amqp://localhost//".to_string(),
+            role: format!("msgflo-rust-{}", id),
+            log: "error".to_string(),
+        }
+    }
+}
+
 fn parse(options: &mut ParticipantOptions) {
 
     use argparse::{StoreTrue, Store};
@@ -226,20 +239,14 @@ fn parse(options: &mut ParticipantOptions) {
 // TODO: pass port info in/out of process()
 // TODO: nicer way to declare ports? ideally they are enums not stringly typed?
 pub fn participant_main(p: Participant) {
-    use rand::{thread_rng, Rng};
 
-    let id: String = thread_rng().gen_ascii_chars().take(5).collect();
-    let mut options = ParticipantOptions {
-        broker: "amqp://localhost//".to_string(),
-        role: format!("msgflo-rust-{}", id),
-        log: "error".to_string(),
-    };
+    let mut options = ParticipantOptions { .. Default::default() };
     parse(&mut options);
-
-    println!("{}({}) started", &options.role, &p.info.component);
 
     let mut c = start_participant(&p, &options);
     c.channel.start_consuming();
+    println!("{}({}) started", &options.role, &p.info.component);
+
     stop_participant(&p, &mut c);
 }
 
