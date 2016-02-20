@@ -1,6 +1,8 @@
 
 extern crate rustc_serialize;
 extern crate amqp;
+#[macro_use]
+extern crate log;
 
 use amqp::{ConsumerCallBackFn, Session, Table, Basic, Channel, Options, Consumer};
 use amqp::protocol;
@@ -14,17 +16,14 @@ fn listen_discovery(channel: &mut Channel) {
                             headers: protocol::basic::BasicProperties, body: Vec<u8>){
         let s = std::str::from_utf8(&body).unwrap();
         let info: ParticipantInfo = json::decode(s).unwrap();
-        println!("MsgFlo participant discovered: {:?}", info);
-        //println!("Deliver info: {:?}", deliver);
-        //println!("Content headers: {:?}", headers);
-        //println!("Content body: ", );
+        info!("MsgFlo participant discovered: {:?}", info);
         channel.basic_ack(deliver.delivery_tag, false);
     }
 
     let queue_name = "fbp";
     let consumer_name = channel.basic_consume(participant_discovered as ConsumerCallBackFn, queue_name,
                                                 "", false, false, false, false, Table::new());
-    println!("listening for discovery messages");
+    info!("listening for discovery messages");
 }
 
 #[derive(Debug, Default, RustcDecodable, RustcEncodable)]
@@ -66,7 +65,7 @@ fn create_queue_and_send(channel: &mut Channel, queue_name: &str, payload: Strin
     queue_declare.expect("queue creation failed");
     let content_type = Some("application/json".to_string());
     let props = protocol::basic::BasicProperties { content_type: content_type, ..Default::default() };
-    println!("sending on {}: {}", queue_name, payload);
+    debug!("sending on {}: {}", queue_name, payload);
     let res = channel.basic_publish("", queue_name, true, false, props, payload.into_bytes());
     res.expect("send on new queue failed");
 }
@@ -91,7 +90,7 @@ fn send_out(channel: &mut Channel, exchange: String, data: Vec<u8>) {
     let props = protocol::basic::BasicProperties { content_type: content_type, ..Default::default() };
     let s = channel.basic_publish(exchange, routing_key, true, false, props, data);
     s.expect("failed to send");
-    println!("sent output");
+    debug!("sent output");
 }
 
 impl Consumer for PortConsumer {
@@ -101,16 +100,17 @@ impl Consumer for PortConsumer {
                        headers: protocol::basic::BasicProperties,
                        body: Vec<u8>) {
 
-        println!("calling process()");
+        debug!("calling process()");
         let f = self.process;
         let res = f(body);
-        println!("process() returned");
+        debug!("process() returned");
 
         if res.is_ok() {
-            println!("ACKing and sending");
+            debug!("ACKing and sending");
             send_out(channel, self.outqueue.to_string(), res.unwrap());
             let r = channel.basic_ack(deliver.delivery_tag, false);
         } else {
+            error!("process() errored");
             let r = channel.basic_nack(deliver.delivery_tag, true, true);
         }
         // FIXME: send error data
@@ -119,7 +119,7 @@ impl Consumer for PortConsumer {
 
 // FIXME: actually call ProcessFunction
 fn setup_inport(participant: &Participant, port: &ParticipantPort, connection: &mut Connection) {
-    println!("setup inport: {}", port.queue.to_string());
+    debug!("setup inport: {}", port.queue.to_string());
 
     let consumer = PortConsumer {
         process: participant.process,
@@ -138,7 +138,7 @@ fn setup_inport(participant: &Participant, port: &ParticipantPort, connection: &
 
     cons.expect("iport setup failed");
 
-    println!("setup inport done: {:?}, {:?}", port.id.to_string(), port.queue.to_string());
+    debug!("inport setup done: {:?}, {:?}", port.id.to_string(), port.queue.to_string());
 }
 
 fn setup_outport(participant: &Participant, port: &ParticipantPort, connection: &mut Connection) {
@@ -148,7 +148,7 @@ fn setup_outport(participant: &Participant, port: &ParticipantPort, connection: 
                                                     false, true, false, false, false, Table::new());
     declare.expect("outport setup failed");
 
-    println!("setup outport done: {:?}, {:?}", port.id.to_string(), port.queue.to_string());
+    debug!("setup outport done: {:?}, {:?}", port.id.to_string(), port.queue.to_string());
 }
 
 
@@ -168,12 +168,36 @@ fn start_participant(participant: &Participant) -> Connection {
     return conn;
 }
 
-// for debugging
 fn stop_participant(participant: &Participant, connection: &mut Connection) {
 
     let closed = connection.channel.close(200, "Bye".to_string());
     connection.session.close(200, "Good Bye".to_string());
 }
+
+
+use log::{LogRecord, LogLevel, LogMetadata, LogLevelFilter};
+
+struct SimpleLogger;
+
+impl log::Log for SimpleLogger {
+    fn enabled(&self, metadata: &LogMetadata) -> bool {
+        metadata.level() <= LogLevel::Debug
+    }
+
+    fn log(&self, record: &LogRecord) {
+        if self.enabled(record.metadata()) {
+            println!("{} - {}", record.level(), record.args());
+        }
+    }
+}
+
+pub fn init_logger() {
+    log::set_logger(|maxlog| {
+        maxlog.set(LogLevelFilter::Debug);
+        Box::new(SimpleLogger)
+    });
+}
+
 
 // XXX: seems rust-amqp makes program hangs forever if error occurs / channel is borked?
 // TODO: pass port info in/out of process()
@@ -186,3 +210,4 @@ pub fn participant_main(p: Participant) {
     c.channel.start_consuming();
     stop_participant(&p, &mut c);
 }
+

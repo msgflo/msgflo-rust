@@ -6,6 +6,7 @@ authors = ["Jon Nordby <jononor@gmail.com>"]
 [dependencies]
 amqp = "0.0.14"
 rustc-serialize = "0.3"
+log = "0.3"
 
 [lib]
 name = "msgflo"
