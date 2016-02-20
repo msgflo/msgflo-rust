@@ -2,7 +2,7 @@ language: rust
 rust: nightly
 services:
 - rabbitmq
-after_install:
+before_install:
 - npm install
 after_script:
 - npm test
