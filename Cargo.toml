@@ -7,6 +7,6 @@ authors = ["Jon Nordby <jononor@gmail.com>"]
 amqp = "0.0.14"
 rustc-serialize = "0.3"
 
-[[bin]]
-name = "msgflo-rust"
-path = "src/bin/msgflo-rust.rs"
+[lib]
+name = "msgflo"
+path = "src/lib.rs"
