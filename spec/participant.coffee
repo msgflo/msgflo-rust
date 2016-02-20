@@ -3,8 +3,11 @@ path = require 'path'
 chai = require 'chai' unless chai
 heterogenous = require '../node_modules/msgflo/spec/heterogenous.coffee'
 
+exampleProg = (name) ->
+    return path.join __dirname, '..', 'target', 'debug', 'examples', name
+
 participants =
-  'C++Repeat': [path.join __dirname, '..', 'build', './repeat-cpp']
+  'rust/Repeat': [ exampleProg 'repeat' ]
 
 describe 'Participants', ->
   address = 'amqp://localhost'
@@ -21,6 +24,3 @@ describe 'Participants', ->
   names = Object.keys g.commands
   names.forEach (name) ->
     heterogenous.testParticipant g, name
-
-
-

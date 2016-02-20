@@ -41,8 +41,8 @@ pub struct ParticipantInfo {
     pub id: String, // unique name
     pub role: String ,// role participant has
     pub component: String, // component the participant is instance of
-//   label: Option<String>, // (optional) short human-readable description
-//    icon: Option<String>, // (optional)
+    pub label: Option<String>, // (optional) short human-readable description
+    pub icon: Option<String>, // (optional)
     pub inports: Vec<ParticipantPort>,
     pub outports: Vec<ParticipantPort>,
 }
@@ -143,9 +143,12 @@ fn setup_inport(participant: &Participant, port: &ParticipantPort, connection: &
 
 fn setup_outport(participant: &Participant, port: &ParticipantPort, connection: &mut Connection) {
 
-    let exchange_type = "direct".to_string();
-    let queue_declare = connection.channel.exchange_declare(port.queue.to_string(), exchange_type, true, false, false, false, false, Table::new());
-    let content_type = Some("application/json".to_string());
+    let exchange_type = "fanout".to_string();
+    let declare = connection.channel.exchange_declare(port.queue.to_string(), exchange_type,
+                                                    false, true, false, false, false, Table::new());
+    declare.expect("outport setup failed");
+
+    println!("setup outport done: {:?}, {:?}", port.id.to_string(), port.queue.to_string());
 }
 
 
@@ -157,11 +160,8 @@ fn start_participant(participant: &Participant) -> Connection {
 
     let mut conn = Connection { session: session, channel: channel };
 
-    // XXX: seems like can only connect to one queue?? or rather, seems program hangs forever if channel is borked
-    listen_discovery(&mut conn.channel); // TESTING
-
     setup_inport(&participant, &participant.info.inports[0], &mut conn);
-
+    setup_outport(&participant, &participant.info.outports[0], &mut conn);
 
     return conn;
 }
@@ -173,6 +173,7 @@ fn stop_participant(participant: &Participant, connection: &mut Connection) {
     connection.session.close(200, "Good Bye".to_string());
 }
 
+// XXX: seems rust-amqp makes program hangs forever if error occurs / channel is borked?
 // TODO: pass port info in/out of process()
 // TODO: respect MSGFLO_BROKER envvar
 // TODO: setup the msgflo hetro automated test

@@ -5,11 +5,13 @@ use msgflo::{ParticipantInfo, Participant, ParticipantPort};
 
 fn main() {
     let info = ParticipantInfo {
-        id: "part11".to_string(),
-        role: "myrole".to_string(),
+        id: "repeat113".to_string(),
+        role: "repeat".to_string(),
         component: "rust/Repeat".to_string(),
-        inports: vec! [ ParticipantPort { id: "in".to_string(), queue: "rustparty.IN".to_string() } ],
-        outports: vec! [ ParticipantPort { id: "out".to_string(), queue: "rustparty.OUT".to_string() } ],
+        label: Some("Repeats input as-is".to_string()),
+        icon: None,
+        inports: vec! [ ParticipantPort { id: "in".to_string(), queue: "repeat.IN".to_string() } ],
+        outports: vec! [ ParticipantPort { id: "out".to_string(), queue: "repeat.OUT".to_string() } ],
     };
 
 
