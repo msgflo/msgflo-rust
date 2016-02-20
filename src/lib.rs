@@ -154,9 +154,10 @@ fn setup_outport(participant: &Participant, port: &ParticipantPort, connection: 
 }
 
 
-fn start_participant(participant: &Participant) -> Connection {
-    let mut session = Session::new(Options{vhost: "/", .. Default::default()}).ok().expect("Can't create session");
-    let mut channel = session.open_channel(1).expect("channel");
+fn start_participant(participant: &Participant, options: &ParticipantOptions) -> Connection {
+
+    let mut session = Session::open_url(&options.broker).expect("Can't create AMQP session");
+    let mut channel = session.open_channel(1).expect("could not open AMQP channel");
 
     let mut conn = Connection { session: session, channel: channel };
 
@@ -229,7 +230,7 @@ pub fn participant_main(p: Participant) {
 
     let id: String = thread_rng().gen_ascii_chars().take(5).collect();
     let mut options = ParticipantOptions {
-        broker: "amqp://localhost".to_string(),
+        broker: "amqp://localhost//".to_string(),
         role: format!("msgflo-rust-{}", id),
         log: "error".to_string(),
     };
@@ -237,7 +238,7 @@ pub fn participant_main(p: Participant) {
 
     println!("{}({}) started", &options.role, &p.info.component);
 
-    let mut c = start_participant(&p);
+    let mut c = start_participant(&p, &options);
     c.channel.start_consuming();
     stop_participant(&p, &mut c);
 }
