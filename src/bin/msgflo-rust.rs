@@ -47,6 +47,7 @@ struct ParticipantInfo {
     outports: Vec<ParticipantPort>,
 }
 
+type SendFunction = fn(String, Vec<u8>);
 type ProcessFunction = fn(Vec<u8>) -> Result<Vec<u8>, Vec<u8>>;
 struct Participant {
     info: ParticipantInfo,
@@ -80,6 +81,17 @@ fn send_discovery(channel: &mut Channel, info: &ParticipantInfo) {
 struct PortConsumer {
     process: ProcessFunction,
     portname: String,
+    outqueue: String, // FIXME: allow sending on any port, also multiple times
+}
+
+fn send_out(channel: &mut Channel, exchange: String, data: Vec<u8>) {
+
+    let routing_key = "".to_string();
+    let content_type = Some("application/json".to_string()); // TODO: should be parameter
+    let props = protocol::basic::BasicProperties { content_type: content_type, ..Default::default() };
+    let s = channel.basic_publish(exchange, routing_key, true, false, props, data);
+    s.expect("failed to send");
+    println!("sent output");
 }
 
 impl Consumer for PortConsumer {
@@ -89,16 +101,19 @@ impl Consumer for PortConsumer {
                        headers: protocol::basic::BasicProperties,
                        body: Vec<u8>) {
 
-        println!("delivery");
-
+        println!("calling process()");
         let f = self.process;
         let res = f(body);
+        println!("process() returned");
 
         if res.is_ok() {
+            println!("ACKing and sending");
+            send_out(channel, self.outqueue.to_string(), res.unwrap());
             let r = channel.basic_ack(deliver.delivery_tag, false);
         } else {
             let r = channel.basic_nack(deliver.delivery_tag, true, true);
         }
+        // FIXME: send error data
     }
 }
 
@@ -106,7 +121,11 @@ impl Consumer for PortConsumer {
 fn setup_inport(participant: &Participant, port: &ParticipantPort, connection: &mut Connection) {
     println!("setup inport: {}", port.queue.to_string());
 
-    let consumer = PortConsumer { process: participant.process, portname: port.id.to_string() };
+    let consumer = PortConsumer {
+        process: participant.process,
+        portname: port.id.to_string(),
+        outqueue: participant.info.outports[0].queue.to_string(),
+    };
 
     // create
     let declare = connection.channel.queue_declare(port.queue.to_string(), false, true, false, false, false, Table::new());
@@ -124,18 +143,9 @@ fn setup_inport(participant: &Participant, port: &ParticipantPort, connection: &
 
 fn setup_outport(participant: &Participant, port: &ParticipantPort, connection: &mut Connection) {
 
-    let queue_declare = connection.channel.queue_declare(port.queue.to_string(), false, true, false, false, false, Table::new());
+    let exchange_type = "direct".to_string();
+    let queue_declare = connection.channel.exchange_declare(port.queue.to_string(), exchange_type, true, false, false, false, false, Table::new());
     let content_type = Some("application/json".to_string());
-}
-
-// FIXME: actually send
-fn send_output(participant: &Participant) {
-
-    let queue_name = participant.info.outports[0].queue.to_string();
-//    let payload = json::encode(&info).unwrap();
-//    println!("sending: {}", payload);
-//    let props = protocol::basic::BasicProperties { content_type: content_type, ..Default::default() };
-//    let res = channel.basic_publish("", port.queue.to_string(), true, false, props, payload.into_bytes());
 }
 
 
@@ -163,10 +173,11 @@ fn stop_participant(participant: &Participant, connection: &mut Connection) {
     connection.session.close(200, "Good Bye".to_string());
 }
 
-// TODO: wire up input/output to the process() function
+// TODO: pass port info in/out of process()
 // TODO: respect MSGFLO_BROKER envvar
 // TODO: setup the msgflo hetro automated test
-// TODO: nicer way to declare ports
+// TODO: move into library, have entrypoint(s) usable from outside
+// TODO: nicer way to declare ports? ideally they are enums not stringly typed?
 fn main() {
     let info = ParticipantInfo {
         id: "part11".to_string(),
