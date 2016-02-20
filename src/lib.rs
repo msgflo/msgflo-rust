@@ -3,6 +3,8 @@ extern crate rustc_serialize;
 extern crate amqp;
 #[macro_use]
 extern crate log;
+extern crate argparse;
+extern crate rand;
 
 use amqp::{ConsumerCallBackFn, Session, Table, Basic, Channel, Options, Consumer};
 use amqp::protocol;
@@ -193,17 +195,48 @@ impl log::Log for SimpleLogger {
 
 pub fn init_logger() {
     log::set_logger(|maxlog| {
-        maxlog.set(LogLevelFilter::Debug);
+        maxlog.set(LogLevelFilter::Info);
         Box::new(SimpleLogger)
     });
 }
 
+#[derive(Debug)]
+struct ParticipantOptions {
+    role: String,
+    broker: String,
+    log: String,
+}
+
+fn parse(options: &mut ParticipantOptions) {
+
+    use argparse::{StoreTrue, Store};
+    let mut parser = argparse::ArgumentParser::new();
+
+    parser.refer(&mut options.role)
+        .add_option(&["--role"], Store, "Participant role name");
+    parser.refer(&mut options.broker)
+        .add_option(&["--broker"], Store, "Address of messaging broker")
+        .envvar("MSGFLO_BROKER");
+
+    parser.parse_args_or_exit(); // XXX: should return out
+} 
 
 // XXX: seems rust-amqp makes program hangs forever if error occurs / channel is borked?
 // TODO: pass port info in/out of process()
-// TODO: respect MSGFLO_BROKER envvar
 // TODO: nicer way to declare ports? ideally they are enums not stringly typed?
 pub fn participant_main(p: Participant) {
+    use rand::{thread_rng, Rng};
+
+    let id: String = thread_rng().gen_ascii_chars().take(5).collect();
+    let mut options = ParticipantOptions {
+        broker: "amqp://localhost".to_string(),
+        role: format!("msgflo-rust-{}", id),
+        log: "error".to_string(),
+    };
+    parse(&mut options);
+
+    println!("{}({}) started", &options.role, &p.info.component);
+
     let mut c = start_participant(&p);
     c.channel.start_consuming();
     stop_participant(&p, &mut c);

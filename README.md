@@ -34,7 +34,6 @@ See [./examples](./examples)
 0.1
 
 * Allow any number of in/outports
-* Add settings for broker url, participant role name
 * Allow sending multiple messages out
 * Finalize initial API
 * Add example of consuming/sending JSON data
