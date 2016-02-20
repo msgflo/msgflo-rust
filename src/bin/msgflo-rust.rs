@@ -166,7 +166,7 @@ fn main() {
 
     let mut c = start_participant(&p);
 
-    create_queue_and_send(&mut c.channel, "rustparty.in", "{ \"data\": 300 }".to_string());
+    create_queue_and_send(&mut c.channel, "rustparty.IN", "{ \"data\": 300 }".to_string());
 
     c.channel.start_consuming();
     stop_participant(&p, &mut c);
