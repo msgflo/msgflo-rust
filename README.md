@@ -9,6 +9,10 @@ runtime. It integrates with other FBP tools like the [Flowhub](http://flowhub.io
 
 *Prototype*
 
+* Can expose a Rust function on AMQP with a single in/outport
+* Sends the MsgFlo participant discovery message on startup
+
+See below TODO section for more notes
 
 ## Installing
 
@@ -17,7 +21,6 @@ Add to your `Cargo.toml`
     [dependencies.msgflo]
     git = "https://github.com/msgflo/msgflo-rust"
 
-
 ## API
 
 See [./examples](./examples)
@@ -25,3 +28,20 @@ See [./examples](./examples)
 ## License
 
 [MIT](./LICENSE.md)
+
+## TODO
+
+0.1
+
+* Allow any number of in/outports
+* Add settings for broker url, participant role name
+* Allow sending multiple messages out
+* Finalize initial API
+* Add example of consuming/sending JSON data
+* Add test for NACK on error condition
+* Publish as Rust crate on http://crates.io
+
+Later
+
+* Support 'hidden' ports (not associated with a queue), used as proxies
+

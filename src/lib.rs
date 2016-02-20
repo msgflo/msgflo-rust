@@ -202,8 +202,6 @@ pub fn init_logger() {
 // XXX: seems rust-amqp makes program hangs forever if error occurs / channel is borked?
 // TODO: pass port info in/out of process()
 // TODO: respect MSGFLO_BROKER envvar
-// TODO: setup the msgflo hetro automated test
-// TODO: move into library, have entrypoint(s) usable from outside
 // TODO: nicer way to declare ports? ideally they are enums not stringly typed?
 pub fn participant_main(p: Participant) {
     let mut c = start_participant(&p);
