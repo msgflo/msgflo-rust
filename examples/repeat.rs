@@ -25,6 +25,5 @@ fn main() {
 
     let p = Participant { info: info, process: process_repeat };
 
-    msgflo::init_logger(); // debugging
     msgflo::participant_main(p);
 }

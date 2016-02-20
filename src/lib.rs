@@ -180,11 +180,13 @@ fn stop_participant(participant: &Participant, connection: &mut Connection) {
 
 use log::{LogRecord, LogLevel, LogMetadata, LogLevelFilter};
 
-struct SimpleLogger;
+struct SimpleLogger {
+    showlevel: LogLevel,
+}
 
 impl log::Log for SimpleLogger {
     fn enabled(&self, metadata: &LogMetadata) -> bool {
-        metadata.level() <= LogLevel::Debug
+        metadata.level() <= self.showlevel
     }
 
     fn log(&self, record: &LogRecord) {
@@ -194,11 +196,18 @@ impl log::Log for SimpleLogger {
     }
 }
 
-pub fn init_logger() {
+pub fn init_logger(level: &str) {
+
+    let log_level = match level {
+        "error" => LogLevel::Error,
+        _ => LogLevel::Debug,
+    };
+
     log::set_logger(|maxlog| {
-        maxlog.set(LogLevelFilter::Info);
-        Box::new(SimpleLogger)
+        maxlog.set(LogLevelFilter::Debug);
+        Box::new(SimpleLogger { showlevel: log_level } )
     });
+
 }
 
 #[derive(Debug)]
@@ -231,6 +240,9 @@ fn parse(options: &mut ParticipantOptions) {
     parser.refer(&mut options.broker)
         .add_option(&["--broker"], Store, "Address of messaging broker")
         .envvar("MSGFLO_BROKER");
+    parser.refer(&mut options.log)
+        .add_option(&["--log"], Store, "Log level")
+        .envvar("MSGFLO_RUST_LOGLEVEL");
 
     parser.parse_args_or_exit(); // XXX: should return out
 } 
@@ -242,6 +254,7 @@ pub fn participant_main(p: Participant) {
 
     let mut options = ParticipantOptions { .. Default::default() };
     parse(&mut options);
+    init_logger(&options.log);
 
     let mut c = start_participant(&p, &options);
     c.channel.start_consuming();
