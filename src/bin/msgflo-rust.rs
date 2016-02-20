@@ -47,7 +47,7 @@ struct ParticipantInfo {
     outports: Vec<ParticipantPort>,
 }
 
-type ProcessFunction = fn(i32) -> i32;
+type ProcessFunction = fn(Vec<u8>) -> Result<Vec<u8>, Vec<u8>>;
 struct Participant {
     info: ParticipantInfo,
     process: ProcessFunction,
@@ -92,22 +92,19 @@ impl Consumer for PortConsumer {
         println!("delivery");
 
         let f = self.process;
-        let res = f(10);
+        let res = f(body);
 
-        //let s = std::str::from_utf8(&body).unwrap();
-        //let json_obj: json::Object = json::decode(s).expect("json parse error");
-        channel.basic_ack(deliver.delivery_tag, false);
+        if res.is_ok() {
+            let r = channel.basic_ack(deliver.delivery_tag, false);
+        } else {
+            let r = channel.basic_nack(deliver.delivery_tag, true, true);
+        }
     }
 }
 
 // FIXME: actually call ProcessFunction
 fn setup_inport(participant: &Participant, port: &ParticipantPort, connection: &mut Connection) {
     println!("setup inport: {}", port.queue.to_string());
-
-    let process_tampoline = | b: Vec<u8> | {
-        let f = participant.process;
-        f(10);
-    };
 
     let consumer = PortConsumer { process: participant.process, portname: port.id.to_string() };
 
@@ -178,9 +175,14 @@ fn main() {
         inports: vec! [ ParticipantPort { id: "in".to_string(), queue: "rustparty.IN".to_string() } ],
         outports: vec! [ ParticipantPort { id: "out".to_string(), queue: "rustparty.OUT".to_string() } ],
     };
-    fn process_repeat(input: i32) -> i32 {
-        println!("process_repeat: {}", input);
-        return input;
+
+
+        //let s = std::str::from_utf8(&body).unwrap();
+        //let json_obj: json::Object = json::decode(s).expect("json parse error");
+
+    fn process_repeat(input: Vec<u8>) -> Result<Vec<u8>, Vec<u8>> {
+        println!("process_repeat:");
+        return Ok(input);
     }
 
     let p = Participant { info: info, process: process_repeat };
