@@ -2,7 +2,7 @@
 extern crate rustc_serialize;
 extern crate amqp;
 
-use amqp::{ConsumerCallBackFn, Session, Table, Basic, Channel, Options};
+use amqp::{ConsumerCallBackFn, Session, Table, Basic, Channel, Options, Consumer};
 use amqp::protocol;
 use std::default::Default;
 use rustc_serialize::json;
@@ -77,19 +77,39 @@ fn send_discovery(channel: &mut Channel, info: &ParticipantInfo) {
     create_queue_and_send(channel, queue_name, payload);
 }
 
-// FIXME: actually call ProcessFunction
-fn setup_inport(port: &ParticipantPort, connection: &mut Connection) {
-    println!("setup inport: {}", port.queue.to_string());
+struct PortConsumer {
+    process: ProcessFunction,
+    portname: String,
+}
 
-    fn on_message(channel: &mut Channel, deliver: protocol::basic::Deliver,
-                            headers: protocol::basic::BasicProperties, body: Vec<u8>) {
+impl Consumer for PortConsumer {
+    fn handle_delivery(&mut self,
+                       channel: &mut Channel,
+                       deliver: protocol::basic::Deliver,
+                       headers: protocol::basic::BasicProperties,
+                       body: Vec<u8>) {
 
-        println!("!! got msg on inport");
-        let s = std::str::from_utf8(&body).unwrap();
-        let info: ParticipantInfo = json::decode(s).unwrap();
-        println!("got message on: {:?}", info);
+        println!("delivery");
+
+        let f = self.process;
+        let res = f(10);
+
+        //let s = std::str::from_utf8(&body).unwrap();
+        //let json_obj: json::Object = json::decode(s).expect("json parse error");
         channel.basic_ack(deliver.delivery_tag, false);
     }
+}
+
+// FIXME: actually call ProcessFunction
+fn setup_inport(participant: &Participant, port: &ParticipantPort, connection: &mut Connection) {
+    println!("setup inport: {}", port.queue.to_string());
+
+    let process_tampoline = | b: Vec<u8> | {
+        let f = participant.process;
+        f(10);
+    };
+
+    let consumer = PortConsumer { process: participant.process, portname: port.id.to_string() };
 
     // create
     let declare = connection.channel.queue_declare(port.queue.to_string(), false, true, false, false, false, Table::new());
@@ -97,15 +117,15 @@ fn setup_inport(port: &ParticipantPort, connection: &mut Connection) {
 
     // subscribe
     let q = port.queue.to_string();
-    let cons = connection.channel.basic_consume(on_message as ConsumerCallBackFn, q,
+    let cons = connection.channel.basic_consume(consumer, q,
                                                 "".to_string(), false, false, false, false, Table::new());
 
     cons.expect("iport setup failed");
 
-    println!("setup inport done: {:?}", port.id.to_string());
+    println!("setup inport done: {:?}, {:?}", port.id.to_string(), port.queue.to_string());
 }
 
-fn setup_outport(port: &ParticipantPort, connection: &mut Connection) {
+fn setup_outport(participant: &Participant, port: &ParticipantPort, connection: &mut Connection) {
 
     let queue_declare = connection.channel.queue_declare(port.queue.to_string(), false, true, false, false, false, Table::new());
     let content_type = Some("application/json".to_string());
@@ -130,10 +150,10 @@ fn start_participant(participant: &Participant) -> Connection {
 
     let mut conn = Connection { session: session, channel: channel };
 
-    // XXX: seems like can only connect to one queue??
+    // XXX: seems like can only connect to one queue?? or rather, seems program hangs forever if channel is borked
     listen_discovery(&mut conn.channel); // TESTING
 
-    setup_inport(&participant.info.inports[0], &mut conn);
+    setup_inport(&participant, &participant.info.inports[0], &mut conn);
 
 
     return conn;
@@ -159,6 +179,7 @@ fn main() {
         outports: vec! [ ParticipantPort { id: "out".to_string(), queue: "rustparty.OUT".to_string() } ],
     };
     fn process_repeat(input: i32) -> i32 {
+        println!("process_repeat: {}", input);
         return input;
     }
 
