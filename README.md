@@ -7,8 +7,21 @@ runtime. It integrates with other FBP tools like the [Flowhub](http://flowhub.io
 
 ## Status
 
-*Proof of concept*
+*Prototype*
+
+
+## Installing
+
+Add to your `Cargo.toml`
+
+    [dependencies.msgflo]
+    git = "https://github.com/msgflo/msgflo-rust"
+
+
+## API
+
+See [./examples](./examples)
 
 ## License
 
-MIT
+[MIT](./LICENSE.md)
