@@ -8,7 +8,7 @@ use std::slice;
 
 
 #[derive(Debug, Default, RustcDecodable, RustcEncodable, Clone)]
-pub struct ParticipantPort {
+pub struct Port {
     pub id: String, // port name
     pub queue: String, // the associated message queue
     // FIXME: support. Is a keyword so needs some special handling   type: String, // datatype, ex: "boolean"
@@ -24,8 +24,8 @@ pub struct ParticipantInfo {
     pub component: String, // component the participant is instance of
     pub label: Option<String>, // (optional) short human-readable description
     pub icon: Option<String>, // (optional)
-    pub inports: Vec<ParticipantPort>,
-    pub outports: Vec<ParticipantPort>,
+    pub inports: Vec<Port>,
+    pub outports: Vec<Port>,
 }
 
 pub struct InfoBuilder {
@@ -50,12 +50,12 @@ impl InfoBuilder {
     }
 
     pub fn inport(&mut self, id: &str) -> &mut InfoBuilder {
-        let port = ParticipantPort { id: id.to_string(), queue: "".to_string() };
+        let port = Port { id: id.to_string(), queue: "".to_string() };
         self.info.inports.push(port);
         self
     }
     pub fn outport(&mut self, id: &str) -> &mut InfoBuilder {
-        let port = ParticipantPort { id: id.to_string(), queue: "".to_string() };
+        let port = Port { id: id.to_string(), queue: "".to_string() };
         self.info.outports.push(port);
         self
     }
@@ -138,7 +138,7 @@ impl Consumer for PortConsumer {
 }
 
 // FIXME: actually call ProcessFunction
-fn setup_inport(participant: &Participant, port: &ParticipantPort, connection: &mut Connection) {
+fn setup_inport(participant: &Participant, port: &Port, connection: &mut Connection) {
     debug!("setup inport: {}", port.queue.to_string());
 
     let consumer = PortConsumer {
@@ -161,7 +161,7 @@ fn setup_inport(participant: &Participant, port: &ParticipantPort, connection: &
     debug!("inport setup done: {:?}, {:?}", port.id.to_string(), port.queue.to_string());
 }
 
-fn setup_outport(participant: &Participant, port: &ParticipantPort, connection: &mut Connection) {
+fn setup_outport(participant: &Participant, port: &Port, connection: &mut Connection) {
 
     let exchange_type = "fanout".to_string();
     let declare = connection.channel.exchange_declare(port.queue.to_string(), exchange_type,
@@ -231,7 +231,7 @@ fn normalize_info(old: &ParticipantInfo, options: &Options) -> ParticipantInfo {
 
     // generate port defaults
     let role = new.role.to_string(); // NOTE: would be nice to be able to pass reference to info?
-    let normalize_port = | o: &ParticipantPort | -> ParticipantPort {
+    let normalize_port = | o: &Port | -> Port {
         let mut p = o.clone();
         if p.queue == "" {
             p.queue = default_queue(role.to_string(), p.id.to_string());

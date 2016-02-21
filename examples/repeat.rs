@@ -1,7 +1,7 @@
 
 extern crate msgflo;
 
-use msgflo::participant::{ParticipantInfo, Participant, ParticipantPort, InfoBuilder};
+use msgflo::participant::{ParticipantInfo, Participant, InfoBuilder};
 
 fn main() {
     let info =  InfoBuilder::new("rust/Repeat")
