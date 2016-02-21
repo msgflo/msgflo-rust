@@ -18,7 +18,7 @@ pub struct Port {
 
 
 #[derive(Debug, Default, RustcDecodable, RustcEncodable, Clone)]
-pub struct ParticipantInfo {
+pub struct Info {
     pub id: String, // unique name
     pub role: String ,// role participant has
     pub component: String, // component the participant is instance of
@@ -29,13 +29,13 @@ pub struct ParticipantInfo {
 }
 
 pub struct InfoBuilder {
-    info: ParticipantInfo
+    info: Info
 }
 
 impl InfoBuilder {
     pub fn new(component: &str) -> InfoBuilder {
         InfoBuilder {
-            info:  ParticipantInfo { component: component.to_string(),  .. Default::default() }
+            info:  Info { component: component.to_string(),  .. Default::default() }
         }
     }
 
@@ -59,7 +59,7 @@ impl InfoBuilder {
         self.info.outports.push(port);
         self
     }
-    pub fn build(&self) -> ParticipantInfo {
+    pub fn build(&self) -> Info {
         return self.info.clone();
     }
 }
@@ -68,7 +68,7 @@ impl InfoBuilder {
 type SendFunction = fn(String, Vec<u8>);
 pub type ProcessFunction = fn(Vec<u8>) -> Result<Vec<u8>, Vec<u8>>;
 pub struct Participant {
-    pub info: ParticipantInfo,
+    pub info: Info,
     pub process: ProcessFunction,
 }
 
@@ -89,7 +89,7 @@ fn create_queue_and_send(channel: &mut Channel, queue_name: &str, payload: Strin
     res.expect("send on new queue failed");
 }
 
-fn send_discovery(channel: &mut Channel, info: &ParticipantInfo) {
+fn send_discovery(channel: &mut Channel, info: &Info) {
     let queue_name = "fbp"; // TODO: use an exchange istead, requires protocol change in msgflo
 
     let payload = json::encode(&info).unwrap();
@@ -211,7 +211,7 @@ impl Default for Options {
     }
 }
 
-fn normalize_info(old: &ParticipantInfo, options: &Options) -> ParticipantInfo {
+fn normalize_info(old: &Info, options: &Options) -> Info {
     use rand::{thread_rng, Rng};
 
     let mut new = old.clone();
