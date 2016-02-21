@@ -17,7 +17,7 @@ pub struct ParticipantPort {
 }
 
 
-#[derive(Debug, Default, RustcDecodable, RustcEncodable)]
+#[derive(Debug, Default, RustcDecodable, RustcEncodable, Clone)]
 pub struct ParticipantInfo {
     pub id: String, // unique name
     pub role: String ,// role participant has
@@ -28,50 +28,42 @@ pub struct ParticipantInfo {
     pub outports: Vec<ParticipantPort>,
 }
 
-pub struct Component {
-    component: String,
-    label: Option<String>,
-    icon: Option<String>,
-    inports: Vec<ParticipantPort>,
-    outports: Vec<ParticipantPort>,
+pub struct InfoBuilder {
+    info: ParticipantInfo
 }
 
-impl Component {
-    pub fn new(component: &str) -> Component {
-        Component {
-            component: component.to_string(),
-            label: None,
-            icon: None,
-            inports: vec! [],
-            outports: vec! [],
+impl InfoBuilder {
+    pub fn new(component: &str) -> InfoBuilder {
+        InfoBuilder {
+            info:  ParticipantInfo {
+                id: "".to_string(), // FIXME: use Option
+                role: "".to_string(), // FIXME: use Option
+                icon: None,
+                label: None,
+                component: component.to_string(),
+                inports: vec! [],
+                outports: vec! [],
+            }
         }
     }
 
-    pub fn label(&mut self, label: &str) -> &mut Component {
-        self.label = Some(label.to_string());
+    pub fn label(&mut self, label: &str) -> &mut InfoBuilder {
+        self.info.label = Some(label.to_string());
         self
     }
 
-    pub fn inport(&mut self, id: &str) -> &mut Component {
+    pub fn inport(&mut self, id: &str) -> &mut InfoBuilder {
         let port = ParticipantPort { id: id.to_string(), queue: "".to_string() };
-        self.inports.push(port);
+        self.info.inports.push(port);
         self
     }
-    pub fn outport(&mut self, id: &str) -> &mut Component {
+    pub fn outport(&mut self, id: &str) -> &mut InfoBuilder {
         let port = ParticipantPort { id: id.to_string(), queue: "".to_string() };
-        self.outports.push(port);
+        self.info.outports.push(port);
         self
     }
-    pub fn info(&self) -> ParticipantInfo {
-        ParticipantInfo {
-            id: "".to_string(), // FIXME: use Option
-            role: "".to_string(), // FIXME: use Option
-            icon: None,
-            label: None,
-            component: self.component.to_string(),
-            inports: self.inports.clone(),
-            outports: self.outports.clone(),
-        }
+    pub fn build(&self) -> ParticipantInfo {
+        return self.info.clone();
     }
 }
 
