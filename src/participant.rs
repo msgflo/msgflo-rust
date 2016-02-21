@@ -1,6 +1,6 @@
 
 use argparse;
-use amqp::{ConsumerCallBackFn, Session, Table, Basic, Channel, Options, Consumer};
+use amqp::{ConsumerCallBackFn, Session, Table, Basic, Channel, Consumer};
 use amqp::protocol;
 use std::default::Default;
 use rustc_serialize::json;
@@ -172,7 +172,7 @@ fn setup_outport(participant: &Participant, port: &ParticipantPort, connection: 
 }
 
 
-fn start_participant(participant: &Participant, options: &ParticipantOptions) -> Connection {
+fn start_participant(participant: &Participant, options: &Options) -> Connection {
 
     let mut session = Session::open_url(&options.broker).expect("Can't create AMQP session");
     let mut channel = session.open_channel(1).expect("could not open AMQP channel");
@@ -196,22 +196,22 @@ fn stop_participant(participant: &Participant, connection: &mut Connection) {
 }
 
 #[derive(Debug)]
-struct ParticipantOptions {
+struct Options {
     role: String,
     broker: String,
 }
 
-impl Default for ParticipantOptions {
-    fn default() -> ParticipantOptions { 
+impl Default for Options {
+    fn default() -> Options { 
 
-        ParticipantOptions {
+        Options {
             broker: "amqp://localhost//".to_string(),
             role: "".to_string(),
         }
     }
 }
 
-fn normalize_info(old: &ParticipantInfo, options: &ParticipantOptions) -> ParticipantInfo {
+fn normalize_info(old: &ParticipantInfo, options: &Options) -> ParticipantInfo {
     use rand::{thread_rng, Rng};
 
     let mut new = old.clone();
@@ -248,7 +248,7 @@ fn default_queue(role: String, port_name: String) -> String {
     return format!("{}.{}", role, port_name.to_uppercase());
 }
 
-fn parse(options: &mut ParticipantOptions) {
+fn parse(options: &mut Options) {
 
     use argparse::{StoreTrue, Store};
     let mut parser = argparse::ArgumentParser::new();
@@ -267,7 +267,7 @@ fn parse(options: &mut ParticipantOptions) {
 // TODO: nicer way to declare ports? ideally they are enums not stringly typed?
 pub fn main(orig: Participant) {
 
-    let mut options = ParticipantOptions { .. Default::default() };
+    let mut options = Options { .. Default::default() };
     parse(&mut options);
 
     let info = normalize_info(&orig.info, &options);
