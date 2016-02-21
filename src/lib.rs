@@ -200,7 +200,6 @@ impl log::Log for SimpleLogger {
 struct ParticipantOptions {
     role: String,
     broker: String,
-    log: String,
 }
 
 impl Default for ParticipantOptions {
