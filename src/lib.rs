@@ -178,25 +178,6 @@ fn stop_participant(participant: &Participant, connection: &mut Connection) {
     connection.session.close(200, "Good Bye".to_string());
 }
 
-
-use log::{LogRecord, LogLevel, LogMetadata, LogLevelFilter};
-
-struct SimpleLogger {
-    showlevel: LogLevel,
-}
-
-impl log::Log for SimpleLogger {
-    fn enabled(&self, metadata: &LogMetadata) -> bool {
-        metadata.level() <= self.showlevel
-    }
-
-    fn log(&self, record: &LogRecord) {
-        if self.enabled(record.metadata()) {
-            println!("{} - {}", record.level(), record.args());
-        }
-    }
-}
-
 #[derive(Debug)]
 struct ParticipantOptions {
     role: String,
