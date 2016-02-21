@@ -35,12 +35,17 @@ pub struct InfoBuilder {
 impl InfoBuilder {
     pub fn new(component: &str) -> InfoBuilder {
         InfoBuilder {
-            info:  ParticipantInfo { .. Default::default() }
+            info:  ParticipantInfo { component: component.to_string(),  .. Default::default() }
         }
     }
 
     pub fn label(&mut self, label: &str) -> &mut InfoBuilder {
         self.info.label = Some(label.to_string());
+        self
+    }
+
+    pub fn role(&mut self, role: &str) -> &mut InfoBuilder {
+        self.info.role = role.to_string();
         self
     }
 
@@ -206,10 +211,10 @@ impl Default for ParticipantOptions {
     }
 }
 
-fn normalize_info(info: &ParticipantInfo, options: &ParticipantOptions) -> ParticipantInfo {
+fn normalize_info(old: &ParticipantInfo, options: &ParticipantOptions) -> ParticipantInfo {
     use rand::{thread_rng, Rng};
 
-    let mut new = info.clone();
+    let mut new = old.clone();
 
     // normalize role name
     if options.role != "" {
@@ -225,15 +230,22 @@ fn normalize_info(info: &ParticipantInfo, options: &ParticipantOptions) -> Parti
     new.id = format!("{}-{}", new.role, id_rnd);
 
     // generate port defaults
-
-    // FIXME: allow to specify queue explicitly
-    //new.inports = 
+    let role = new.role.to_string(); // NOTE: would be nice to be able to pass reference to info?
+    let normalize_port = | o: &ParticipantPort | -> ParticipantPort {
+        let mut p = o.clone();
+        if p.queue == "" {
+            p.queue = default_queue(role.to_string(), p.id.to_string());
+        }
+        return p;
+    };
+    new.inports = old.inports.iter().map(&normalize_port).collect();
+    new.outports = old.outports.iter().map(&normalize_port).collect();
 
     return new;
 }
 
 fn default_queue(role: String, port_name: String) -> String {
-    return role + "." + &port_name.to_uppercase();
+    return format!("{}.{}", role, port_name.to_uppercase());
 }
 
 fn parse(options: &mut ParticipantOptions) {
@@ -253,12 +265,13 @@ fn parse(options: &mut ParticipantOptions) {
 // XXX: seems rust-amqp makes program hangs forever if error occurs / channel is borked?
 // TODO: pass port info in/out of process()
 // TODO: nicer way to declare ports? ideally they are enums not stringly typed?
-pub fn main(p: Participant) {
+pub fn main(orig: Participant) {
 
     let mut options = ParticipantOptions { .. Default::default() };
     parse(&mut options);
 
-    normalize_info(&p.info, &options);
+    let info = normalize_info(&orig.info, &options);
+    let p = Participant { info: info, process: orig.process }; // XXX: hack
 
     let mut c = start_participant(&p, &options);
     println!("{}({}) started", &options.role, &p.info.component);
