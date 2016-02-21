@@ -1,7 +1,7 @@
 
 extern crate msgflo;
 
-use msgflo::{ParticipantInfo, Participant, ParticipantPort};
+use msgflo::participant::{ParticipantInfo, Participant, ParticipantPort};
 
 fn main() {
     let info = ParticipantInfo {
@@ -25,5 +25,5 @@ fn main() {
 
     let p = Participant { info: info, process: process_repeat };
 
-    msgflo::participant_main(p);
+    msgflo::participant::main(p);
 }
