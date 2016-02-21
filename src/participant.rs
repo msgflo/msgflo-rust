@@ -7,7 +7,7 @@ use rustc_serialize::json;
 use std::slice;
 
 
-#[derive(Debug, Default, RustcDecodable, RustcEncodable)]
+#[derive(Debug, Default, RustcDecodable, RustcEncodable, Clone)]
 pub struct ParticipantPort {
     pub id: String, // port name
     pub queue: String, // the associated message queue
@@ -15,6 +15,7 @@ pub struct ParticipantPort {
     // options: queue options as specified by the message queue implementation   
     // description?? TODO: standardize
 }
+
 
 #[derive(Debug, Default, RustcDecodable, RustcEncodable)]
 pub struct ParticipantInfo {
@@ -26,6 +27,54 @@ pub struct ParticipantInfo {
     pub inports: Vec<ParticipantPort>,
     pub outports: Vec<ParticipantPort>,
 }
+
+pub struct Component {
+    component: String,
+    label: Option<String>,
+    icon: Option<String>,
+    inports: Vec<ParticipantPort>,
+    outports: Vec<ParticipantPort>,
+}
+
+impl Component {
+    pub fn new(component: &str) -> Component {
+        Component {
+            component: component.to_string(),
+            label: None,
+            icon: None,
+            inports: vec! [],
+            outports: vec! [],
+        }
+    }
+
+    pub fn label(&mut self, label: &str) -> &mut Component {
+        self.label = Some(label.to_string());
+        self
+    }
+
+    pub fn inport(&mut self, id: &str) -> &mut Component {
+        let port = ParticipantPort { id: id.to_string(), queue: "".to_string() };
+        self.inports.push(port);
+        self
+    }
+    pub fn outport(&mut self, id: &str) -> &mut Component {
+        let port = ParticipantPort { id: id.to_string(), queue: "".to_string() };
+        self.outports.push(port);
+        self
+    }
+    pub fn info(&self) -> ParticipantInfo {
+        ParticipantInfo {
+            id: "".to_string(), // FIXME: use Option
+            role: "".to_string(), // FIXME: use Option
+            icon: None,
+            label: None,
+            component: self.component.to_string(),
+            inports: self.inports.clone(),
+            outports: self.outports.clone(),
+        }
+    }
+}
+
 
 type SendFunction = fn(String, Vec<u8>);
 pub type ProcessFunction = fn(Vec<u8>) -> Result<Vec<u8>, Vec<u8>>;

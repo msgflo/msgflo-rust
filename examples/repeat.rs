@@ -1,7 +1,7 @@
 
 extern crate msgflo;
 
-use msgflo::participant::{ParticipantInfo, Participant, ParticipantPort};
+use msgflo::participant::{ParticipantInfo, Participant, ParticipantPort, Component};
 
 fn main() {
     let info = ParticipantInfo {
@@ -14,6 +14,11 @@ fn main() {
         outports: vec! [ ParticipantPort { id: "out".to_string(), queue: "repeat.OUT".to_string() } ],
     };
 
+    let mut c =  Component::new("rust/Repeat")
+        .label("Repeats input as-is")
+        .inport("in")
+        .inport("out")
+        .info();
 
         //let s = std::str::from_utf8(&body).unwrap();
         //let json_obj: json::Object = json::decode(s).expect("json parse error");
