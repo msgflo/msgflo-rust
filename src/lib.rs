@@ -77,6 +77,7 @@ fn send_discovery(channel: &mut Channel, info: &ParticipantInfo) {
 
     let payload = json::encode(&info).unwrap();
     create_queue_and_send(channel, queue_name, payload);
+    info!("sent participant discovery: {}  {}({})", info.id, info.role, info.component);
 }
 
 struct PortConsumer {
@@ -209,7 +210,7 @@ impl Default for ParticipantOptions {
         let id: String = thread_rng().gen_ascii_chars().take(5).collect();
         ParticipantOptions {
             broker: "amqp://localhost//".to_string(),
-            role: "", // TODO: allow anonymous, format!("msgflo-rust-{}", id),
+            role: "".to_string(), // TODO: allow anonymous, format!("msgflo-rust-{}", id),
         }
     }
 }
@@ -241,9 +242,9 @@ pub fn participant_main(p: Participant) {
     }
 
     let mut c = start_participant(&p, &options);
-    c.channel.start_consuming();
     println!("{}({}) started", &options.role, &p.info.component);
+    c.channel.start_consuming();
 
     stop_participant(&p, &mut c);
 }
-
+    
