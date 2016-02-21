@@ -209,7 +209,7 @@ impl Default for ParticipantOptions {
         let id: String = thread_rng().gen_ascii_chars().take(5).collect();
         ParticipantOptions {
             broker: "amqp://localhost//".to_string(),
-            role: format!("msgflo-rust-{}", id),
+            role: "", // TODO: allow anonymous, format!("msgflo-rust-{}", id),
         }
     }
 }
@@ -235,6 +235,10 @@ pub fn participant_main(p: Participant) {
 
     let mut options = ParticipantOptions { .. Default::default() };
     parse(&mut options);
+
+    if options.role == "" {
+        options.role = p.info.role.to_string();
+    }
 
     let mut c = start_participant(&p, &options);
     c.channel.start_consuming();
