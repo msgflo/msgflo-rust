@@ -35,15 +35,7 @@ pub struct InfoBuilder {
 impl InfoBuilder {
     pub fn new(component: &str) -> InfoBuilder {
         InfoBuilder {
-            info:  ParticipantInfo {
-                id: "".to_string(), // FIXME: use Option
-                role: "".to_string(), // FIXME: use Option
-                icon: None,
-                label: None,
-                component: component.to_string(),
-                inports: vec! [],
-                outports: vec! [],
-            }
+            info:  ParticipantInfo { .. Default::default() }
         }
     }
 
@@ -206,14 +198,42 @@ struct ParticipantOptions {
 
 impl Default for ParticipantOptions {
     fn default() -> ParticipantOptions { 
-        use rand::{thread_rng, Rng};
 
-        let id: String = thread_rng().gen_ascii_chars().take(5).collect();
         ParticipantOptions {
             broker: "amqp://localhost//".to_string(),
-            role: "".to_string(), // TODO: allow anonymous, format!("msgflo-rust-{}", id),
+            role: "".to_string(),
         }
     }
+}
+
+fn normalize_info(info: &ParticipantInfo, options: &ParticipantOptions) -> ParticipantInfo {
+    use rand::{thread_rng, Rng};
+
+    let mut new = info.clone();
+
+    // normalize role name
+    if options.role != "" {
+        new.role = options.role.to_string();
+    }
+    if new.role == "" {
+        let role_rnd: String = thread_rng().gen_ascii_chars().take(5).collect();
+        new.role = format!("msgflo-rust-{}", role_rnd);
+    }
+
+    // generate ID
+    let id_rnd: String = thread_rng().gen_ascii_chars().take(5).collect();
+    new.id = format!("{}-{}", new.role, id_rnd);
+
+    // generate port defaults
+
+    // FIXME: allow to specify queue explicitly
+    //new.inports = 
+
+    return new;
+}
+
+fn default_queue(role: String, port_name: String) -> String {
+    return role + "." + &port_name.to_uppercase();
 }
 
 fn parse(options: &mut ParticipantOptions) {
@@ -238,9 +258,7 @@ pub fn main(p: Participant) {
     let mut options = ParticipantOptions { .. Default::default() };
     parse(&mut options);
 
-    if options.role == "" {
-        options.role = p.info.role.to_string();
-    }
+    normalize_info(&p.info, &options);
 
     let mut c = start_participant(&p, &options);
     println!("{}({}) started", &options.role, &p.info.component);
