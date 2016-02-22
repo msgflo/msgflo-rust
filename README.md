@@ -7,10 +7,12 @@ It integrates with other FBP tools like the [Flowhub](http://flowhub.io) visual 
 
 ## Status
 
-*Prototype*
+*Working prototype*
 
 * Can expose a Rust function on AMQP with a single in/outport
 * Sends the MsgFlo participant discovery message on startup
+* Passes MsgFlo participant tests
+* Not used in any applications yet (as far as we know)
 
 See below TODO section for more notes
 
