@@ -35,7 +35,6 @@ See [./examples](./examples)
 
 * Allow any number of in/outports
 * Allow sending multiple messages out
-* Finalize initial API
 * Make error handling sane
 * Add example of consuming/sending JSON data
 * Add test for NACK on error condition
