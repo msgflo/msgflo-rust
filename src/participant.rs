@@ -64,14 +64,14 @@ impl InfoBuilder {
     }
 }
 
-pub trait ParticipantTrait : Sync {
+pub trait Participant : Sync {
     fn info(&self) -> Info;
     fn process(&self, Vec<u8>) -> Result<Vec<u8>, Vec<u8>>;
 }
 
-struct Participant {
+struct ParticipantData {
     info: Info,
-    _trait: & 'static ParticipantTrait,
+    _trait: & 'static Participant,
 }
 
 struct Connection {
@@ -100,7 +100,7 @@ fn send_discovery(channel: &mut Channel, info: &Info) {
 }
 
 struct PortConsumer {
-    participant: & 'static ParticipantTrait,
+    participant: & 'static Participant,
     portname: String,
     outqueue: String, // FIXME: allow sending on any port, also multiple times
 }
@@ -143,7 +143,7 @@ impl Consumer for PortConsumer {
 }
 
 // FIXME: actually call ProcessFunction
-fn setup_inport(participant: &Participant, port: &Port, connection: &mut Connection) {
+fn setup_inport(participant: &ParticipantData, port: &Port, connection: &mut Connection) {
     debug!("setup inport: {}", port.queue.to_string());
 
     let consumer = PortConsumer {
@@ -166,7 +166,7 @@ fn setup_inport(participant: &Participant, port: &Port, connection: &mut Connect
     debug!("inport setup done: {:?}, {:?}", port.id.to_string(), port.queue.to_string());
 }
 
-fn setup_outport(participant: &Participant, port: &Port, connection: &mut Connection) {
+fn setup_outport(participant: &ParticipantData, port: &Port, connection: &mut Connection) {
 
     let exchange_type = "fanout".to_string();
     let declare = connection.channel.exchange_declare(port.queue.to_string(), exchange_type,
@@ -177,24 +177,25 @@ fn setup_outport(participant: &Participant, port: &Port, connection: &mut Connec
 }
 
 
-fn start_participant(participant: &Participant, options: &Options) -> Connection {
+fn start_participant(participant: &ParticipantData, options: &Options) -> Connection {
 
     let mut session = Session::open_url(&options.broker).expect("Can't create AMQP session");
     let mut channel = session.open_channel(1).expect("could not open AMQP channel");
 
     let mut conn = Connection { session: session, channel: channel };
+    let info = &participant.info;
 
     // setup ports
-    setup_inport(&participant, &participant.info.inports[0], &mut conn);
-    setup_outport(&participant, &participant.info.outports[0], &mut conn);
+    setup_inport(&participant, &info.inports[0], &mut conn);
+    setup_outport(&participant, &info.outports[0], &mut conn);
 
     // send MsgFlo participant discovery message
-    send_discovery(&mut conn.channel, &participant.info);
+    send_discovery(&mut conn.channel, info);
 
     return conn;
 }
 
-fn stop_participant(participant: &Participant, connection: &mut Connection) {
+fn stop_participant(participant: &ParticipantData, connection: &mut Connection) {
 
     let closed = connection.channel.close(200, "Bye".to_string());
     connection.session.close(200, "Good Bye".to_string());
@@ -270,7 +271,7 @@ fn parse(options: &mut Options) {
 // XXX: seems rust-amqp makes program hangs forever if error occurs / channel is borked?
 // TODO: pass port info in/out of process()
 // TODO: nicer way to declare ports? ideally they are enums not stringly typed?
-pub fn main(orig: & 'static ParticipantTrait) {
+pub fn main(orig: & 'static Participant) {
 
     let mut options = Options { .. Default::default() };
     parse(&mut options);
@@ -278,10 +279,11 @@ pub fn main(orig: & 'static ParticipantTrait) {
     let i : Info = orig.info();
     let info = normalize_info(&i, &options);
 
-    let p = Participant { info: info, _trait: orig }; // XXX: hack
+    let p = ParticipantData { info: info, _trait: orig }; // XXX: hack
 
     let mut c = start_participant(&p, &options);
-    println!("{}({}) started", &p.info.role, &p.info.component);
+
+    println!("{}({}) started", p.info.role, p.info.component);
     c.channel.start_consuming();
 
     stop_participant(&p, &mut c);

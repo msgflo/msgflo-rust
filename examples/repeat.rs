@@ -1,13 +1,12 @@
 extern crate msgflo;
 
-use msgflo::participant::{ParticipantTrait, InfoBuilder, Info};
+use msgflo::participant::{Participant, InfoBuilder, Info};
 
 struct Repeat {
     state: Option<String>, // we don't really have any state
 }
 
-impl ParticipantTrait for Repeat {
-
+impl Participant for Repeat {
     fn info(&self) -> Info {
         InfoBuilder::new("rust/Repeat")
             .label("Repeats input as-is")
@@ -22,7 +21,6 @@ impl ParticipantTrait for Repeat {
     }
 
 }
-
 unsafe impl Sync for Repeat {} // FIXME: figure out how to avoid
 
 fn main() {
