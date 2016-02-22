@@ -274,7 +274,7 @@ pub fn main(orig: Participant) {
     let p = Participant { info: info, process: orig.process }; // XXX: hack
 
     let mut c = start_participant(&p, &options);
-    println!("{}({}) started", &options.role, &p.info.component);
+    println!("{}({}) started", &p.info.role, &p.info.component);
     c.channel.start_consuming();
 
     stop_participant(&p, &mut c);

@@ -7,7 +7,7 @@ exampleProg = (name) ->
     return path.join __dirname, '..', 'target', 'debug', 'examples', name
 
 participants =
-  'rust/Repeat': [ exampleProg 'repeat' ]
+  'rust/Repeat': [ exampleProg('repeat'), '--role=repeat' ]
 
 describe 'Participants', ->
   address = 'amqp://localhost'
