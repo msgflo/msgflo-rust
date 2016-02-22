@@ -64,18 +64,16 @@ impl InfoBuilder {
     }
 }
 
-
-type SendFunction = fn(String, Vec<u8>);
-pub type ProcessFunction = fn(Vec<u8>) -> Result<Vec<u8>, Vec<u8>>;
-
-pub trait ParticipantTrait {
+pub trait ParticipantTrait : Sync {
     fn info(&self) -> Info;
 //    fn process(&self, Vec<u8>) -> Result<Vec<u8>, Vec<u8>>;
 }
+pub type ProcessFunction = fn(&ParticipantTrait, Vec<u8>) -> Result<Vec<u8>, Vec<u8>>;
 
 struct Participant {
     info: Info,
-    process: ProcessFunction
+    process: ProcessFunction,
+    _trait: & 'static ParticipantTrait,
 }
 
 struct Connection {
@@ -105,9 +103,14 @@ fn send_discovery(channel: &mut Channel, info: &Info) {
 
 struct PortConsumer {
     process: ProcessFunction,
+    participant: & 'static ParticipantTrait,
     portname: String,
     outqueue: String, // FIXME: allow sending on any port, also multiple times
 }
+
+//unsafe impl Sync for PortConsumer {}
+//unsafe impl Send for ParticipantTrait {}
+//unsafe impl Sync for ParticipantTrait {}
 
 fn send_out(channel: &mut Channel, exchange: String, data: Vec<u8>) {
 
@@ -128,7 +131,7 @@ impl Consumer for PortConsumer {
 
         debug!("calling process()");
         let f = self.process;
-        let res = f(body);
+        let res = f(self.participant, body);
         debug!("process() returned");
 
         if res.is_ok() {
@@ -149,6 +152,7 @@ fn setup_inport(participant: &Participant, port: &Port, connection: &mut Connect
 
     let consumer = PortConsumer {
         process: participant.process,
+        participant: participant._trait,
         portname: port.id.to_string(),
         outqueue: participant.info.outports[0].queue.to_string(),
     };
@@ -271,7 +275,7 @@ fn parse(options: &mut Options) {
 // XXX: seems rust-amqp makes program hangs forever if error occurs / channel is borked?
 // TODO: pass port info in/out of process()
 // TODO: nicer way to declare ports? ideally they are enums not stringly typed?
-pub fn main(orig: &ParticipantTrait, func: ProcessFunction) {
+pub fn main(orig: & 'static ParticipantTrait, func: ProcessFunction) {
 
     let mut options = Options { .. Default::default() };
     parse(&mut options);
@@ -279,7 +283,7 @@ pub fn main(orig: &ParticipantTrait, func: ProcessFunction) {
     let i : Info = orig.info();
     let info = normalize_info(&i, &options);
 
-    let p = Participant { info: info, process: func }; // XXX: hack
+    let p = Participant { info: info, process: func, _trait: orig }; // XXX: hack
 
     let mut c = start_participant(&p, &options);
     println!("{}({}) started", &p.info.role, &p.info.component);

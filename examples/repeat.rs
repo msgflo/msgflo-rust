@@ -18,12 +18,14 @@ impl ParticipantTrait for Repeat {
 
 }
 
-fn process(input: Vec<u8>) -> Result<Vec<u8>, Vec<u8>> {
+unsafe impl Sync for Repeat {} // FIXME: figure out how to avoid
+
+fn process(r: &ParticipantTrait, input: Vec<u8>) -> Result<Vec<u8>, Vec<u8>> {
     println!("repeat process():");
     return Ok(input);
 }
 
 fn main() {
-    let r = Repeat { state: None };
+    static r: Repeat = Repeat { state: None };
     msgflo::participant::main(&r, process);
 }
