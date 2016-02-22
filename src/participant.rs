@@ -67,9 +67,15 @@ impl InfoBuilder {
 
 type SendFunction = fn(String, Vec<u8>);
 pub type ProcessFunction = fn(Vec<u8>) -> Result<Vec<u8>, Vec<u8>>;
-pub struct Participant {
-    pub info: Info,
-    pub process: ProcessFunction,
+
+pub trait ParticipantTrait {
+    fn info(&self) -> Info;
+//    fn process(&self, Vec<u8>) -> Result<Vec<u8>, Vec<u8>>;
+}
+
+struct Participant {
+    info: Info,
+    process: ProcessFunction
 }
 
 struct Connection {
@@ -265,13 +271,15 @@ fn parse(options: &mut Options) {
 // XXX: seems rust-amqp makes program hangs forever if error occurs / channel is borked?
 // TODO: pass port info in/out of process()
 // TODO: nicer way to declare ports? ideally they are enums not stringly typed?
-pub fn main(orig: Participant) {
+pub fn main(orig: &ParticipantTrait, func: ProcessFunction) {
 
     let mut options = Options { .. Default::default() };
     parse(&mut options);
 
-    let info = normalize_info(&orig.info, &options);
-    let p = Participant { info: info, process: orig.process }; // XXX: hack
+    let i : Info = orig.info();
+    let info = normalize_info(&i, &options);
+
+    let p = Participant { info: info, process: func }; // XXX: hack
 
     let mut c = start_participant(&p, &options);
     println!("{}({}) started", &p.info.role, &p.info.component);
