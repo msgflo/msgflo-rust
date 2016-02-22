@@ -21,7 +21,6 @@ impl Participant for Repeat {
     }
 
 }
-unsafe impl Sync for Repeat {} // FIXME: figure out how to avoid
 
 fn main() {
     static r: Repeat = Repeat { state: None };
