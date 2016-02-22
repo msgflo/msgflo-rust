@@ -99,8 +99,8 @@ fn send_discovery(channel: &mut Channel, info: &Info) {
     info!("sent participant discovery: {}  {}({})", info.id, info.role, info.component);
 }
 
-struct PortConsumer {
-    participant: & 'static Participant,
+struct PortConsumer <'a> {
+    participant: & 'a Participant,
     portname: String,
     outqueue: String, // FIXME: allow sending on any port, also multiple times
 }
@@ -119,7 +119,7 @@ fn send_out(channel: &mut Channel, exchange: String, data: Vec<u8>) {
     debug!("sent output");
 }
 
-impl Consumer for PortConsumer {
+impl <'a>Consumer for PortConsumer<'a> {
     fn handle_delivery(&mut self,
                        channel: &mut Channel,
                        deliver: protocol::basic::Deliver,
