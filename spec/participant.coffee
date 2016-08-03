@@ -10,7 +10,7 @@ participants =
   'rust/Repeat': [ exampleProg('repeat'), '--role=repeat' ]
 
 describe 'Participants', ->
-  address = 'amqp://localhost'
+  address = 'amqp://localhost//'
   g =
     broker: null
     commands: participants
@@ -23,4 +23,4 @@ describe 'Participants', ->
 
   names = Object.keys g.commands
   names.forEach (name) ->
-    heterogenous.testParticipant g, name
+    heterogenous.testParticipant g, name, { broker: address }
