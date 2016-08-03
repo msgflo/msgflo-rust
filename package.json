@@ -29,6 +29,8 @@
     "chai": "^3.5.0",
     "coffee-script": "^1.10.0",
     "mocha": "^2.4.5",
-    "msgflo": "^0.5.30"
+    "amqplib": "^0.4.2",
+    "mqtt": "1.4.x",
+    "msgflo": "^0.7.6"
   }
 }
