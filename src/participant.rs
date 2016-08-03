@@ -64,6 +64,23 @@ impl InfoBuilder {
     }
 }
 
+#[derive(Debug, RustcDecodable, RustcEncodable, Clone)]
+struct DiscoveryMessage {
+    pub payload: Info,
+    pub command: String,
+    pub protocol: String,
+}
+
+impl DiscoveryMessage {
+    pub fn new(info: Info) -> DiscoveryMessage {
+        DiscoveryMessage {
+            protocol: "discovery".to_string(),
+            command: "participant".to_string(),
+            payload: info,
+        }
+    }
+}
+
 pub trait Participant : Sync {
     fn info(&self) -> Info;
     fn process(&self, Vec<u8>) -> Result<Vec<u8>, Vec<u8>>;
@@ -94,7 +111,8 @@ fn create_queue_and_send(channel: &mut Channel, queue_name: &str, payload: Strin
 fn send_discovery(channel: &mut Channel, info: &Info) {
     let queue_name = "fbp"; // TODO: use an exchange istead, requires protocol change in msgflo
 
-    let payload = json::encode(&info).unwrap();
+    let msg = DiscoveryMessage::new(info.clone());
+    let payload = json::encode(&msg).unwrap();
     create_queue_and_send(channel, queue_name, payload);
     info!("sent participant discovery: {}  {}({})", info.id, info.role, info.component);
 }
