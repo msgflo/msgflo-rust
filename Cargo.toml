@@ -9,6 +9,7 @@ rustc-serialize = "0.3"
 log = "0.3"
 argparse = "0.2"
 rand = "0.3"
+rumqtt = "0.5"
 
 [lib]
 name = "msgflo"
