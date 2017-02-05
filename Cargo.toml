@@ -4,7 +4,7 @@ version = "0.0.3"
 authors = ["Jon Nordby <jononor@gmail.com>"]
 
 [dependencies]
-amqp = "0.0.16"
+amqp = "0.0.20"
 rustc-serialize = "0.3"
 log = "0.3"
 argparse = "0.2"
