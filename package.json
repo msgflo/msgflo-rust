@@ -28,7 +28,7 @@
   "devDependencies": {
     "chai": "^4.1.0",
     "coffee-script": "^1.10.0",
-    "mocha": "^3.2.0",
+    "mocha": "^4.0.0",
     "amqplib": "^0.5.1",
     "mqtt": "~2.9.3",
     "msgflo": "^0.10.19"
